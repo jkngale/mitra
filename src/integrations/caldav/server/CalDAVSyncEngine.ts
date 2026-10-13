@@ -123,10 +123,11 @@ export class CalDAVSyncEngine implements SyncEngine {
 	private async listMembers(
 		client: Awaited<ReturnType<typeof createDAVClient>>,
 		source: Source,
-	): Promise<{ changedUrls: Array<string>, deletedUrls: Array<string>, syncToken?: string, complete: boolean }> {
+	): Promise<{ changedUrls: Array<string>, deletedUrls: Array<string>, syncToken?: string, complete: boolean, failureStatus?: number }> {
 		const members = new Map<string, 'changed' | 'deleted'>()
 		let syncToken: string | undefined = source.syncState?.syncToken || undefined
 		let complete = false
+		let failureStatus: number | undefined
 		let requests = 0
 		for (; requests < CalDAVSyncEngine.maxListingRequests; requests++) {
 			const result = await client.syncCollection({
@@ -137,6 +138,7 @@ export class CalDAVSyncEngine implements SyncEngine {
 			})
 			const failure = result.find(r => (r.status ?? 200) >= 400 && r.status !== 507 && (!r.href || CalDAV.isCollectionHref(source.uri, r.href)))
 			if (failure) {
+				failureStatus = failure.status
 				logger.warn(`Listing "${source.name}" answered ${failure.status}, keeping the stored entries and the stored sync token`)
 				break
 			}
@@ -168,6 +170,7 @@ export class CalDAVSyncEngine implements SyncEngine {
 			deletedUrls: [...members].filter(([, state]) => state === 'deleted').map(([url]) => url),
 			syncToken,
 			complete,
+			failureStatus,
 		}
 	}
 
@@ -177,15 +180,46 @@ export class CalDAVSyncEngine implements SyncEngine {
 		const remoteCalendar = { url: source.uri }
 		const priorToken = source.syncState?.syncToken
 
-		const { changedUrls, deletedUrls, syncToken: newSyncToken, complete } = await this.listMembers(client, source)
-
 		const existingEntries = await base.syncedEntries(em, source)
+		let queryMode = source.syncState?.listingMode === 'calendar-query'
+		let listing = queryMode
+			? { changedUrls: [] as Array<string>, deletedUrls: [] as Array<string>, syncToken: undefined, complete: false, failureStatus: undefined }
+			: await this.listMembers(client, source)
+		if (queryMode || [403, 405, 501].includes(listing.failureStatus ?? 0)) {
+			try {
+				// Some Google calendars reject sync-collection but allow a complete calendar-query.
+				// Query only etags; multiget below retrieves the resources that actually changed.
+				const responses = await client.calendarQuery({ url: source.uri, props: { 'd:getetag': {} }, filters: [{ 'comp-filter': { _attributes: { name: 'VCALENDAR' } } }], depth: '1' })
+				const failure = responses.find(response => (response.status ?? 200) >= 400)
+				if (failure) {
+					throw new Error(`Calendar-query returned ${failure.status}`)
+				}
+				const objects = responses.filter(response => !!response.href && !CalDAV.isCollectionHref(source.uri, response.href)).map(response => ({
+					url: CalDAV.resolveMemberUrl(source.uri, response.href),
+					etag: response.props?.getetag === undefined || response.props?.getetag === null ? undefined : String(response.props.getetag),
+				}))
+				const remoteUris = new Set(objects.map(object => CalDAV.resolveMemberUrl(source.uri, object.url)))
+				listing = {
+					changedUrls: objects.filter(object => {
+						const rows = existingEntries.filter(entry => CalDAV.memberUrlsMatch(source.uri, entry.uri, object.url))
+						return !object.etag || !rows.length || rows.some(row => row.data?.etag !== object.etag)
+					}).map(object => CalDAV.resolveMemberUrl(source.uri, object.url)),
+					deletedUrls: [...new Set(existingEntries.map(entry => CalDAV.resolveMemberUrl(source.uri, entry.uri)).filter(uri => !!uri && !remoteUris.has(uri)))],
+					syncToken: undefined,
+					complete: true,
+				}
+				queryMode = true
+			} catch (error) {
+				logger.warn(`Calendar-query of "${source.name}" failed; keeping the stored entries: ${error instanceof Error ? error.message : error}`)
+			}
+		}
+		const { changedUrls, deletedUrls, syncToken: newSyncToken, complete } = listing
 
 		const changedObjects = changedUrls.length
 			? await this.fetchObjects(client, remoteCalendar, changedUrls)
 			: []
 
-		if (!priorToken && complete) {
+		if (!queryMode && !priorToken && complete) {
 			const remoteUris = new Set(changedUrls)
 			const alreadyReported = new Set(deletedUrls)
 			for (const entry of existingEntries) {
@@ -194,7 +228,7 @@ export class CalDAVSyncEngine implements SyncEngine {
 					deletedUrls.push(entryUrl)
 				}
 			}
-		} else if (!priorToken) {
+		} else if (!queryMode && !priorToken) {
 			logger.warn(`First listing of "${source.name}" came back incomplete, skipping remote-deletion detection this cycle`)
 		}
 
@@ -262,7 +296,7 @@ export class CalDAVSyncEngine implements SyncEngine {
 		await integration.reconcileRelations(em, existingEntries)
 
 		// Mark incomplete if truncated by server to keep import open for subsequent passes.
-		source.syncState = { syncToken: newSyncToken, ...complete ? {} : { incomplete: true } }
+		source.syncState = { syncToken: newSyncToken, ...queryMode ? { listingMode: 'calendar-query' } : {}, ...complete ? {} : { incomplete: true } }
 
 		logger.debug(`Synced "${source.name}": ${changedObjects.length} fetched, ${deletedUrls.length} deleted${changed ? '' : ' (no local changes)'}`)
 

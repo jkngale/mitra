@@ -117,6 +117,7 @@ One fixture serves the dev account, every demo sandbox and every screenshot the 
 - **It speaks the user's language**: every string in the seed is a dictionary key, translated in the integration's own `i18n/<lang>.json` (loaded by the seed alone through `localizeSample`, never by the client that bundles the class, and checked by `npm run i18n:analyze` as a set of its own), including the five calendar names, which follow the language unless the user renamed the calendar. `credentials.language` says which: a sandbox takes the visitor's `Accept-Language` on arrival (`Sandbox.open`), and a switch in Settings sends it in a `PUT` and asks for a re-import (`integrations/demo/client/language.ts`). The seed stamp is day plus language, so either change rebuilds.
 
 ## Integrations & Sync Engine
+- CalDAV sources that reject delta reports but permit calendar-query retain a query listing mode. Full etag snapshots reconcile deletions and fetch only changed resources; failed snapshots never prune cached rows.
 - Entry mutation routes acquire provider locks before reading rows and hold them through flush, sharing the queue with sync. Each background provider uses a separate entity manager.
 - Todoist floating schedules use the timezone from `/user`, and recurring moves preserve due rule/language through `item_update`. Task mapping finishes before persistence.
 - Google principal URLs bypass discovery via `CalDAVConnection.createAccount`; generic server roots retain discovery. Already-connected single-account providers stay visible and edit the existing connection.
