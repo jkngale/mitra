@@ -258,10 +258,10 @@ export class Notion extends Integration<NotionCredentials> {
 			}
 			const before = entry?.clone()
 			const target = entry ?? new Entry({ id: crypto.randomUUID(), sourceId: source.id, uri: page.id })
+			Notion.applyPage(target, page, schema, { description, ...await this.relationsOf(page, schema, target.relations, isPage) })
 			if (!entry) {
 				em.persist(target)
 			}
-			Notion.applyPage(target, page, schema, { description, ...await this.relationsOf(page, schema, target.relations, isPage) })
 			applied.push(target)
 			if (!before || !before.editEquals(target) || (target.relations !== undefined && before.relationList.writesDiffer(target.relationList))) {
 				changed = true
@@ -340,6 +340,22 @@ export class Notion extends Integration<NotionCredentials> {
 			await EntryRelation.repoint(em, new Map([[previousUid, entry.uid!]]), sources.map(source => source.id))
 		}
 		return entry
+	}
+
+	/** Views of one database share a page; moving between them must not create or trash it. */
+	canMoveWithinDatabase(current: Source, target: Source): boolean {
+		return current.integrationId === target.integrationId && Notion.idsOf(current).dataSourceId === Notion.idsOf(target).dataSourceId
+	}
+
+	async moveEntryToView(em: EntityManager, existing: Entry, incoming: Entry, target: Source): Promise<Entry> {
+		await this.updateEntry(em, existing, incoming)
+		const twin = await em.findOne(Entry, { sourceId: target.id, uri: existing.uri })
+		if (twin && twin.id !== existing.id) {
+			twin.assign(new Entry({ ...existing, id: twin.id, sourceId: target.id }))
+			return twin
+		}
+		existing.sourceId = target.id
+		return existing
 	}
 
 	override async updateEntry(em: EntityManager, existing: Entry, incoming: Entry): Promise<void> {

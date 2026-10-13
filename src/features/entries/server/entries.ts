@@ -16,6 +16,8 @@ import { editOccurrence, deleteOccurrence, expandedOccurrences, seriesStarts, se
 import { entrySearch, entryWindow, everyEntry } from './entryWindow.js'
 import { assertRelationsValid, attachRelations, relationClosure } from '../../relations/server/relations.js'
 import { EntryRank } from '../EntryRank.js'
+import { Notion } from '../../../integrations/notion/Notion.js'
+import { withEntryWriteLock } from './EntryWriteLock.js'
 
 const logger = createLogger('Entries')
 
@@ -133,7 +135,7 @@ entriesRouter.put('/ranks', async (req, res) => {
 	return res.status(204).end()
 })
 
-entriesRouter.post('/', async (req, res) => {
+entriesRouter.post('/', withEntryWriteLock(orm, async (req, res) => {
 	const em = orm.em.fork()
 
 	const body = req.body as Partial<Entry>
@@ -231,11 +233,11 @@ entriesRouter.post('/', async (req, res) => {
 	syncEmitter.emit('updated', req.user.id)
 	logger.debug(`Created ${created.type} "${created.heading}" (${created.id}) in source ${targetSource.id}`)
 	return res.status(201).json(projectedForViewer(created, viewerZone(req)))
-})
+}))
 
-entriesRouter.put('/:id', async (req, res) => {
+entriesRouter.put('/:id', withEntryWriteLock(orm, async (req, res) => {
 	const em = orm.em.fork()
-	const existing = await req.user.entry(em, req.params.id)
+	const existing = await req.user.entry(em, String(req.params.id))
 	// The stored relations, up front: the provider's diff and the response BOTH need a definite value.
 	await EntryRelation.loadFor(em, [existing])
 
@@ -415,6 +417,15 @@ entriesRouter.put('/:id', async (req, res) => {
 		return res.status(400).json({ error: 'An event must have a date' })
 	}
 
+	if (currentSource.id !== targetSource.id && incoming.type === existing.type
+		&& currentIntegration instanceof Notion && currentIntegration.canMoveWithinDatabase(currentSource, targetSource)) {
+		const moved = await currentIntegration.moveEntryToView(em, existing, incoming, targetSource)
+		await EntryRelation.reconcile(em, moved.id!, moved.relations ?? null)
+		await em.flush()
+		syncEmitter.emit('updated', req.user.id)
+		return res.json(projectedForViewer(moved, viewerZone(req)))
+	}
+
 	// Move between sources or type conversion re-creates the entry (create-first, delete-after ordering).
 	if (currentSource.id !== targetSource.id || incoming.type !== existing.type) {
 		incoming.id = crypto.randomUUID()
@@ -446,12 +457,12 @@ entriesRouter.put('/:id', async (req, res) => {
 	syncEmitter.emit('updated', req.user.id)
 	logger.debug(`Updated entry ${existing.id} "${incoming.heading}"`)
 	return res.json(projectedForViewer(existing, viewerZone(req)))
-})
+}))
 
 /** Marks a task done without a full entry body, for a notification's Done button. */
-entriesRouter.post('/:id/complete', async (req, res) => {
+entriesRouter.post('/:id/complete', withEntryWriteLock(orm, async (req, res) => {
 	const em = orm.em.fork()
-	const existing = await req.user.entry(em, req.params.id)
+	const existing = await req.user.entry(em, String(req.params.id))
 	const source = await em.findOneOrFail(Source, { id: existing.sourceId })
 	const integration = await em.findOneOrFail(Integration, { id: source.integrationId })
 	const capabilities = integration.capabilitiesFor(source)
@@ -489,11 +500,11 @@ entriesRouter.post('/:id/complete', async (req, res) => {
 	syncEmitter.emit('updated', req.user.id)
 	logger.debug(`Completed task ${existing.id} "${existing.heading}"`)
 	return res.json(projectedForViewer(existing, viewerZone(req)))
-})
+}))
 
-entriesRouter.delete('/:id', async (req, res) => {
+entriesRouter.delete('/:id', withEntryWriteLock(orm, async (req, res) => {
 	const em = orm.em.fork()
-	const entry = await req.user.entry(em, req.params.id)
+	const entry = await req.user.entry(em, String(req.params.id))
 	const source = await em.findOneOrFail(Source, { id: entry.sourceId })
 	const integration = await em.findOneOrFail(Integration, { id: source.integrationId })
 
@@ -516,4 +527,4 @@ entriesRouter.delete('/:id', async (req, res) => {
 	syncEmitter.emit('updated', req.user.id)
 	logger.debug(`Deleted entry ${entry.id} "${entry.heading}"`)
 	return res.status(204).end()
-})
+}))

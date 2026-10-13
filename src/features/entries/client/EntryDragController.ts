@@ -70,11 +70,11 @@ interface Drag {
 	readonly pointerId: number
 	readonly surface: HTMLElement
 	readonly origin: { x: number, y: number }
-	readonly cells: ReadonlyArray<Cell>
-	readonly laneBottom?: number
-	readonly unscheduledBox?: DOMRect
-	readonly gridBox?: DOMRect
-	readonly sidebarBox?: DOMRect
+	cells: ReadonlyArray<Cell>
+	laneBottom?: number
+	unscheduledBox?: DOMRect
+	gridBox?: DOMRect
+	sidebarBox?: DOMRect
 	point: { x: number, y: number }
 	moved: boolean
 	armed: boolean
@@ -153,6 +153,9 @@ export class EntryDragController extends Controller {
 	}
 
 	override hostDisconnected() {
+		if (this.drag) {
+			this.onPointerCancel(new PointerEvent('pointercancel', { pointerId: this.drag.pointerId }))
+		}
 		EntryDragController.grids.delete(this)
 		this.element.removeEventListener('pointerdown', this.onPointerDown)
 	}
@@ -359,9 +362,9 @@ export class EntryDragController extends Controller {
 		drag.surface.addEventListener('pointerup', this.onPointerUp)
 		drag.surface.addEventListener('pointercancel', this.onPointerCancel)
 		drag.surface.addEventListener('touchmove', this.onTouchMove, { passive: false })
+		window.addEventListener('scroll', this.onScroll, { capture: true, passive: true })
 		if (drag.kind === 'relate') {
 			window.addEventListener('keydown', this.onKeyDown)
-			window.addEventListener('scroll', this.onScroll, { capture: true, passive: true })
 		}
 		if (drag.armed) {
 			drag.holdTimer = setTimeout(() => this.activate(true), TOUCH_HOLD_MS)
@@ -606,7 +609,16 @@ export class EntryDragController extends Controller {
 
 	private readonly onScroll = () => {
 		const drag = this.drag
-		if (drag?.kind === 'relate' && drag.moved && !drag.cancelled) {
+		if (!drag || drag.cancelled) {
+			return
+		}
+		// Scroll changes viewport coordinates, while the grabbed calendar time stays fixed.
+		drag.cells = this.snapshotCells()
+		drag.laneBottom = this.element.querySelector('.all-day')?.getBoundingClientRect().bottom
+		drag.unscheduledBox = EntryDragController.unscheduledBox()
+		drag.gridBox = EntryDragController.visibleBox(this.element)
+		drag.sidebarBox = EntryDragController.sidebarBox()
+		if (drag.moved && !drag.armed) {
 			drag.frame ??= requestAnimationFrame(this.processFrame)
 		}
 	}
@@ -653,6 +665,12 @@ export class EntryDragController extends Controller {
 		const drag = this.drag
 		if (!drag || e.pointerId !== drag.pointerId) {
 			return
+		}
+
+		// A release can arrive before the last pointermove or animation frame.
+		if (!drag.armed) {
+			drag.point = { x: e.clientX, y: e.clientY }
+			this.processFrame()
 		}
 
 		if (drag.armed) {

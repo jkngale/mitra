@@ -64,6 +64,32 @@ describe('Todoist task mapping', () => {
 		assert.equal(entry.due, undefined)
 	})
 
+	it('reads floating 18:30 in the account timezone, including the winter offset', () => {
+		const summer = Todoist.scheduleOf(task({ due: { date: '2026-10-13T18:30:00', timezone: null } }), 'Europe/Madrid')
+		assert.equal(summer.start?.toISOString(), '2026-10-13T16:30:00.000Z')
+		assert.equal(summer.timeZone, 'Europe/Madrid')
+		const winter = Todoist.scheduleOf(task({ due: { date: '2026-10-26T18:30:00', timezone: null } }), 'Europe/Madrid')
+		assert.equal(winter.start?.toISOString(), '2026-10-26T17:30:00.000Z')
+	})
+
+	it('reschedules a recurring task while retaining its rule and language', () => {
+		const existing = new Entry({ type: EntryType.Task })
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-12', timezone: null, string: 'cada día', lang: 'es', is_recurring: true } }), 'Europe/Madrid')
+		const incoming = existing.clone()
+		incoming.start = D('2026-10-14T00:00:00Z')
+		const input = Todoist.inputFrom(incoming, 'project-1', true, existing, 'Europe/Madrid')
+		assert.deepEqual(input.due, { date: '2026-10-14', timezone: null, string: 'cada día', lang: 'es', is_recurring: true })
+		assert.equal(input.due_date, undefined)
+	})
+
+	it('keeps floating wall-clock semantics when a task is moved', () => {
+		const existing = new Entry({ type: EntryType.Task })
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-13T18:30:00', timezone: null } }), 'Europe/Madrid')
+		const incoming = existing.clone()
+		incoming.start = D('2026-10-14T16:30:00Z')
+		assert.deepEqual(Todoist.inputFrom(incoming, 'project-1', true, existing, 'Europe/Madrid').due, { date: '2026-10-14T18:30:00', timezone: null })
+	})
+
 	it('maps completed tasks to Done and preserves an unscheduled estimate', () => {
 		const entry = new Entry({ sourceId: 'source-1', type: EntryType.Task })
 		Todoist.applyTask(entry, task({ checked: true, due: null, deadline: null, duration: { amount: 30, unit: 'minute' } }))

@@ -1,6 +1,7 @@
 import { type EntityManager } from '@mikro-orm/sqlite'
 import { equals } from '@a11d/equals'
-import { createDAVClient } from 'tsdav'
+import { type createDAVClient } from 'tsdav'
+import { CalDAVConnection } from './CalDAVConnection.js'
 import ICAL from 'ical.js'
 import { Source } from '../../../features/sources/Source.js'
 import { Entry } from '../../../features/entries/Entry.js'
@@ -17,7 +18,7 @@ const logger = createLogger('CalDAV')
 /** CalDAV sync and network CRUD engine supporting CalDAV, Apple Calendar, and Google Calendar. */
 export class CalDAVSyncEngine implements SyncEngine {
 	private getClient(integration: CalDAV): ReturnType<typeof createDAVClient> {
-		return integration.client ??= createDAVClient(integration.clientParameters)
+		return integration.client ??= CalDAVConnection.connect({ ...integration.clientParameters, principalUrl: integration.principalUrl })
 	}
 
 	/** Discovers user calendar addresses (RFC 6638) for participant identification. */

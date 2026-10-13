@@ -55,7 +55,10 @@ export class Synchronizer {
 			}
 			try {
 				this.logger.debug(`Syncing ${integration.toString()}`)
-				if (await integration.sync(em)) {
+				// A failed provider must not leave pending writes in another provider context.
+				const integrationEm = this.orm.em.fork()
+				const scoped = await integrationEm.findOneOrFail(Integration, { id: integration.id })
+				if (await scoped.sync(integrationEm)) {
 					changedUsers.add(integration.userId)
 					changedIntegrations++
 				}

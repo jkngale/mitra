@@ -31,6 +31,7 @@ const logos: Record<string, string> = {
 @component('mitra-dialog-integration')
 export class DialogIntegration extends DialogComponent<{ readonly id?: string, readonly preselectSources?: boolean, readonly prefill?: Integration }, Integration> {
 	@state() private entity?: Integration
+	@state() private selectedId?: string
 	@state() private discovering = false
 	@state() private discoveryError?: string
 	@state() private googleAvailability?: { configured: boolean } | { error: string }
@@ -41,7 +42,7 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 
 	protected override createRenderRoot() { return this }
 
-	private get isEdit() { return !!this.parameters.id }
+	private get isEdit() { return !!(this.parameters.id ?? this.selectedId) }
 
 	private get discoversSources() { return this.integrationClass?.discoversSources !== false }
 
@@ -50,16 +51,20 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 	}
 
 	private get offeredClasses(): Array<IntegrationClass> {
-		const connected = new Set(getIntegrations().map(integration => integration.type))
 		return integrationClasses().filter(integrationClass =>
-			(!integrationClass.developmentOnly || !!getMeta()?.development)
-			&& !(integrationClass.onePerUser && connected.has(integrationClass.type)))
+			!integrationClass.developmentOnly || !!getMeta()?.development)
+	}
+
+	private connectedFor(integrationClass: IntegrationClass) {
+		return integrationClass.onePerUser ? getIntegrations().find(integration => integration.type === integrationClass.type) : undefined
 	}
 
 	private selectType(integrationClass: IntegrationClass) {
-		this.entity = new integrationClass({ sources: [] as any })
+		const connected = this.connectedFor(integrationClass)
+		this.selectedId = connected?.id
+		this.entity = connected?.editableCopy() ?? new integrationClass({ sources: [] as any })
 		this.calendarName = integrationClass.type === 'apple-reminders' ? String(t('Apple Reminders')) : ''
-		if (integrationClass.type === 'apple-reminders') {
+		if (integrationClass.type === 'apple-reminders' && !connected) {
 			this.generateShortcutToken()
 		}
 		this.discovering = false
@@ -254,9 +259,9 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 				?primaryButtonDisabled=${this.saveDisabled}
 				?primaryOnEnter=${!!this.entity && !this.discoversSources && !this.isEdit}
 			>
-				${this.isEdit || !this.entity ? html.nothing : html`
+				${this.parameters.id || !this.entity ? html.nothing : html`
 					<mitra-icon-button slot="leading" icon="arrow-left" label=${t('Back')}
-						@click=${() => this.entity = undefined}
+						@click=${() => { this.entity = undefined; this.selectedId = undefined }}
 					></mitra-icon-button>
 				`}
 				${!this.entity ? this.typesTemplate : this.detailsTemplate}
@@ -271,7 +276,7 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 					<button class="type" @click=${() => this.selectType(integrationClass)}>
 						<span class="logo">${unsafeHTML(logos[integrationClass.logo] ?? '')}</span>
 						<span class="name">${t(integrationClass.label)}</span>
-						<span class="description">${t(integrationClass.description)}</span>
+						<span class="description">${this.connectedFor(integrationClass) ? t('Edit') : t(integrationClass.description)}</span>
 					</button>
 				`)}
 			</div>

@@ -10,6 +10,7 @@ export interface TodoistDue {
 	datetime?: string | null
 	timezone?: string | null
 	is_recurring?: boolean
+	lang?: string
 	string?: string
 }
 
@@ -36,6 +37,7 @@ export interface TodoistTask {
 }
 
 export interface TodoistTaskInput {
+	due?: TodoistDue | null
 	content?: string
 	description?: string
 	project_id?: string
@@ -67,6 +69,10 @@ export class TodoistClient {
 
 	constructor(private readonly token: string, private readonly fetcher: typeof fetch = fetch) { }
 
+	user(): Promise<{ tz_info: { timezone: string } }> {
+		return this.request('user')
+	}
+
 	projects(): Promise<Array<TodoistProject>> {
 		return this.allPages<TodoistProject>('projects', 'results')
 	}
@@ -89,8 +95,22 @@ export class TodoistClient {
 		return this.request<TodoistTask>(`tasks/${encodeURIComponent(id)}`)
 	}
 
-	updateTask(id: string, input: TodoistTaskInput): Promise<TodoistTask> {
-		return this.request<TodoistTask>(`tasks/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(input) })
+	async updateTask(id: string, input: TodoistTaskInput): Promise<TodoistTask> {
+		const { due, ...fields } = input
+		const updated = await this.request<TodoistTask>(`tasks/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(fields) })
+		if (due === undefined) {
+			return updated
+		}
+		const uuid = crypto.randomUUID()
+		const result = await this.request<{ sync_status: Record<string, 'ok' | { error: string, http_code?: number }> }>('sync', {
+			method: 'POST',
+			body: JSON.stringify({ commands: [{ type: 'item_update', uuid, args: { id, due } }] }),
+		})
+		const status = result.sync_status?.[uuid]
+		if (status !== 'ok') {
+			throw new TodoistRequestError(typeof status === 'object' ? status.http_code ?? 502 : 502, typeof status === 'object' ? status.error : 'Todoist did not confirm the schedule update')
+		}
+		return this.task(id)
 	}
 
 	closeTask(id: string): Promise<void> {

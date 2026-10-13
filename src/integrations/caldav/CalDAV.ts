@@ -68,15 +68,28 @@ export class CalDAV extends Integration<CalDAVCredentials> {
 	/** Transient tsdav client connection instance. */
 	@converter({ out: {} }) client?: ReturnType<typeof createDAVClient>
 
-	get clientParameters(): Parameters<typeof createDAVClient>[0] {
+	get clientParameters(): Parameters<typeof createDAVClient>[0] & { principalUrl?: string } {
 		return {
 			defaultAccountType: 'caldav',
 			authMethod: 'Basic',
 			serverUrl: this.uri ?? '',
+			principalUrl: this.principalUrl,
 			credentials: {
 				username: this.credentials.username,
 				password: this.credentials.password,
 			},
+		}
+	}
+
+	/** Google account URLs are known principals; generic CalDAV roots still need discovery. */
+	get principalUrl(): string | undefined {
+		try {
+			const url = new URL(this.uri ?? '')
+			return (url.hostname === 'www.google.com' && /^\/calendar\/dav\/[^/]+\/user\/?$/.test(url.pathname))
+				|| (url.hostname === 'apidata.googleusercontent.com' && /^\/caldav\/v2\/[^/]+\/?$/.test(url.pathname))
+				? this.uri : undefined
+		} catch {
+			return undefined
 		}
 	}
 
