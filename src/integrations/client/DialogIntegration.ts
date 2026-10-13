@@ -12,6 +12,7 @@ import appleLogo from '../apple/logo.svg'
 import icsLogo from '../ics/logo.svg'
 import notionLogo from '../notion/logo.svg'
 import tempoLogo from '../tempo/logo.svg'
+import todoistLogo from '../todoist/logo.svg'
 import '../../design/TextField.js'
 import { pressable } from '../../design/pressable.css.js'
 
@@ -23,6 +24,7 @@ const logos: Record<string, string> = {
 	ics: icsLogo,
 	notion: notionLogo,
 	tempo: tempoLogo,
+	todoist: todoistLogo,
 	demo: demoLogo,
 }
 
@@ -56,7 +58,10 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 
 	private selectType(integrationClass: IntegrationClass) {
 		this.entity = new integrationClass({ sources: [] as any })
-		this.calendarName = ''
+		this.calendarName = integrationClass.type === 'apple-reminders' ? String(t('Apple Reminders')) : ''
+		if (integrationClass.type === 'apple-reminders') {
+			this.generateShortcutToken()
+		}
 		this.discovering = false
 		this.discoveryError = undefined
 	}
@@ -307,8 +312,10 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 			case 'demo': return this.demoTemplate
 			case 'google': return this.googleTemplate
 			case 'apple': return this.appleTemplate
+			case 'apple-reminders': return this.appleRemindersTemplate
 			case 'ics': return this.icsTemplate
 			case 'notion': return this.notionTemplate
+			case 'todoist': return this.todoistTemplate
 			case 'tempo': return this.tempoTemplate
 			default: return this.caldavTemplate
 		}
@@ -337,6 +344,29 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 			<mitra-text-field label=${t('App-Specific Password')} type="password" ${bind({ keyPath: 'credentials.password' })} placeholder=${this.isEdit ? t('unchanged') : ''}></mitra-text-field>
 			${this.connectTemplate}
 		`
+	}
+
+	private get appleRemindersTemplate() {
+		const { bind } = this.binder
+		return html`
+			<p class="hint">${t('AppleReminders.ShortcutHint')}</p>
+			<mitra-text-field label=${t('Shortcut access token')} type="text" ${bind({ keyPath: 'credentials.token' })} placeholder=${this.isEdit ? t('unchanged') : ''}></mitra-text-field>
+			<div class="token-actions">
+				<mitra-button @click=${() => this.generateShortcutToken()}>${t('Generate token')}</mitra-button>
+				<mitra-button @click=${() => this.copyShortcutToken()} ?disabled=${!this.entity!.credentials.token}>${t('Copy token')}</mitra-button>
+			</div>
+			${this.connectTemplate}
+		`
+	}
+
+	private generateShortcutToken() {
+		const bytes = crypto.getRandomValues(new Uint8Array(32))
+		this.entity!.credentials.token = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+		this.requestUpdate()
+	}
+
+	private async copyShortcutToken() {
+		await navigator.clipboard.writeText(this.entity!.credentials.token)
 	}
 
 	private get icsTemplate() {
@@ -402,6 +432,15 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 				<p class="hint">${t('Notion.TokenHint')}</p>
 			`}
 			<mitra-text-field label=${t('Integration Token')} type="password" ${bind({ keyPath: 'credentials.token' })} placeholder=${this.isEdit ? t('unchanged') : 'ntn_…'}></mitra-text-field>
+			${this.connectTemplate}
+		`
+	}
+
+	private get todoistTemplate() {
+		const { bind } = this.binder
+		return html`
+			${!this.isEdit ? html`<p class="hint">${t('Todoist.TokenHint')}</p>` : html.nothing}
+			<mitra-text-field label=${t('Todoist API Token')} type="password" ${bind({ keyPath: 'credentials.token' })} placeholder=${this.isEdit ? t('unchanged') : ''}></mitra-text-field>
 			${this.connectTemplate}
 		`
 	}

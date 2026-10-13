@@ -12,6 +12,7 @@ import { synchronizer } from '../integrations/server/Synchronizer.js'
 import { eventsRouter } from '../infrastructure/realtime/events.js'
 import { entriesRouter } from '../features/entries/server/entries.js'
 import { integrationsRouter } from '../integrations/server/integrations.js'
+import { appleRemindersShortcutRouter } from '../integrations/apple-reminders/server/shortcut.js'
 import { sourcesRouter } from '../features/sources/server/sources.js'
 import { userRouter } from '../features/identity/server/user.js'
 import { locationsRouter } from '../features/locations/server/locations.js'
@@ -66,6 +67,8 @@ if (oidc) {
 
 // Unauthenticated health check endpoint for orchestrators.
 app.use('/api/health', healthRouter)
+// Shortcut calls authenticate with their scoped bearer token instead of a browser session.
+app.use('/api/apple-reminders/shortcut', appleRemindersShortcutRouter)
 app.use(authMiddleware)
 
 app.use('/api/events', eventsRouter)

@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Keep calendars in Mitra itself, or connect CalDAV, Google Calendar, Apple Calendar, calendar subscriptions, Notion and Tempo, and see how syncing works.
+description: Keep calendars in Mitra itself, or connect CalDAV, Google Calendar, Apple Calendar, Apple Reminders, calendar subscriptions, Notion, Todoist and Tempo, and see how syncing works.
 sidebar:
   label: Overview
 ---
@@ -11,7 +11,7 @@ To add either, choose **Add Integration** at the foot of the sidebar.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../assets/screenshots/integrations-detail-dark.webp">
-  <img src="../../assets/screenshots/integrations-detail-light.webp" alt="The Add integration dialog, offering Mitra, CalDAV, Google Calendar, Apple Calendar, calendar subscriptions, Notion and Tempo" />
+  <img src="../../assets/screenshots/integrations-detail-light.webp" alt="The Add integration dialog, offering Mitra, CalDAV, Google Calendar, Apple Calendar, calendar subscriptions, Notion, Todoist and Tempo" />
 </picture>
 
 ## What each one holds
@@ -22,8 +22,10 @@ To add either, choose **Add Integration** at the foot of the sidebar.
 | [CalDAV](caldav.md) | Events and tasks from any CalDAV server | None |
 | [Google Calendar](google.md) | The calendars of a Google account | A one-time OAuth setup |
 | [Apple Calendar](apple.md) | The calendars of an iCloud account | None |
+| [Apple Reminders](apple-reminders.md) | Tasks from one Reminders list, bridged by an iOS Shortcut | An iOS Shortcut and a token |
 | [Calendar subscriptions](subscriptions.md) | A published `webcal://` or `.ics` feed, read-only | None |
 | [Notion](notion.md) | Tasks from Notion database views | None |
+| [Todoist](todoist.md) | Tasks from Todoist projects | None |
 | [Tempo](tempo.md) | The hours you book on Jira issues | None |
 
 Each provider stores different things. Notion tasks can't repeat, for example, and a Tempo worklog has no location. Mitra hides the fields a calendar can't store, so nothing you type disappears on the next sync.
@@ -37,13 +39,14 @@ After that, the server syncs in the background on its own. It checks more often 
 | | While Mitra is open | While nobody has it open |
 | --- | --- | --- |
 | CalDAV and Apple Calendar | every 10 seconds | every 5 minutes |
-| Google Calendar, Notion and Tempo | about once a minute | every 5 minutes |
+| Google Calendar, Notion, Todoist and Tempo | about once a minute | every 5 minutes |
+| Apple Reminders | each time the iOS Shortcut runs | each time the iOS Shortcut runs |
 | Calendar subscriptions | every 15 minutes | every 15 minutes |
 | Mitra calendars | nothing to sync | nothing to sync |
 
 Google, Notion and Tempo limit how often apps may call them, which is why they're slower. When you open Mitra, every account that's due syncs straight away, so there's no refresh button to press.
 
-Changes go both ways. When you create, edit, move or delete an entry, Mitra writes it back to the calendar it belongs to. One account failing doesn't hold up the others: Mitra tries it again a minute later.
+For integrations that sync in the background, changes go both ways: when you create, edit, move or delete an entry, Mitra writes it back to the calendar it belongs to. Apple Reminders is different: its iOS Shortcut must run to exchange changes. One account failing doesn't hold up the others: Mitra tries it again a minute later.
 
 Some calendars can't be changed from Mitra, such as subscriptions and calendars shared with you to view only. You can still rename, recolor and hide them; see [Read-only calendars](../calendars.md#read-only-calendars).
 
