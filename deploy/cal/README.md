@@ -17,3 +17,9 @@ The existing single-user Mitra identity is preserved. Enabling OIDC would create
 Validation: 1,459 application tests passed, along with typecheck, lint and production build. Browser mouse checks confirmed sequential and in-flight Todoist moves, resizing, reload and a later native sync. Deployment validation additionally checks image identity, SQLite integrity and table counts, Docker health, TLS, and unauthenticated 401 responses for the website and APIs.
 
 After moving to the new hostname, open the site on each device and enable browser notifications there if desired; browser permissions are specific to each origin.
+
+## Crawling and login abuse
+
+Nginx sends `X-Robots-Tag: noindex, nofollow, noarchive` on responses, including unauthenticated 401s. The only public application path is `/robots.txt`, serving `User-agent: *` and `Disallow: /`. Calendar pages, APIs and assets remain authenticated. Robots rules are voluntary crawler instructions, not an access-control boundary.
+
+Install `fail2ban.local` as `/etc/fail2ban/jail.d/mitra-cal.local` and validate with `fail2ban-client -t` before reloading. The jail reads the calendar's dedicated Nginx error log and bans an IP on HTTP/HTTPS for one hour after five incorrect logins within ten minutes. Ordinary unauthenticated requests that trigger the password prompt are not login failures. Loopback addresses are excluded. SSH remains available for recovery; an owner can revoke a ban with `fail2ban-client set mitra-cal unbanip ADDRESS`.

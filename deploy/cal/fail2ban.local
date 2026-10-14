@@ -1,0 +1,11 @@
+[mitra-cal]
+enabled = true
+filter = nginx-http-auth
+backend = auto
+logpath = /var/log/nginx/cal-private.error.log
+port = http,https
+banaction = nftables-multiport
+maxretry = 5
+findtime = 10m
+bantime = 1h
+ignoreip = 127.0.0.1/8 ::1
