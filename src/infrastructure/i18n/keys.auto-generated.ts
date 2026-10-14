@@ -101,6 +101,7 @@ declare global {
 		"Apple Calendar": unknown
 		"Apple ID": unknown
 		"Apple Reminders": unknown
+		"AppleCalendar.PasswordHint": unknown
 		"AppleReminders.ShortcutHint": unknown
 		"Apply to subtasks too?": unknown
 		"Ask everyone to attend": unknown
@@ -177,6 +178,7 @@ declare global {
 		"CopyVersion.Keywords": unknown
 		"Could not load your devices.": unknown
 		"Create": unknown
+		"Create an app-specific password": unknown
 		"Create and move entries right on the grid. Every change syncs back to its source.": unknown
 		"Create Entry": unknown
 		"CreateAvailability.Keywords": unknown

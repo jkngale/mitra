@@ -7,7 +7,7 @@ Mitra connects to your iCloud calendars over CalDAV and syncs their events both 
 
 ## Create an app-specific password
 
-1. Sign in at [appleid.apple.com](https://appleid.apple.com/).
+1. Sign in at [account.apple.com](https://account.apple.com/).
 2. Under **Sign-In and Security**, choose **App-Specific Passwords**.
 3. Create a new password, name it "Mitra" so you recognize it later, and copy it.
 

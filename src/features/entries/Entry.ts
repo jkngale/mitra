@@ -63,6 +63,7 @@ export interface EntryData {
 	etag?: string
 	url?: string
 	localWriteAt?: number
+	todoistDurationMinutes?: number
 }
 
 /** Reserved `Entry.timeZone` value for RFC 5545 floating times. */

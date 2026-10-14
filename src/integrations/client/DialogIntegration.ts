@@ -93,7 +93,8 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 			entity.sources = sources as any
 		} catch (error) {
 			if (this.entity === entity) {
-				this.discoveryError = error instanceof Error ? error.message : String(error)
+				const message = error instanceof Error ? error.message : String(error)
+				this.discoveryError = entity.type === 'apple' ? `${message}. ${t('AppleCalendar.PasswordHint')}` : message
 			}
 		} finally {
 			if (this.entity === entity) {
@@ -345,6 +346,7 @@ export class DialogIntegration extends DialogComponent<{ readonly id?: string, r
 	private get appleTemplate() {
 		const { bind } = this.binder
 		return html`
+			<p class="hint">${t('AppleCalendar.PasswordHint')} <a href="https://account.apple.com/" target="_blank" rel="noopener noreferrer">${t('Create an app-specific password')}</a></p>
 			<mitra-text-field label=${t('Apple ID')} ${bind({ keyPath: 'credentials.username' })} ?readonly=${this.isEdit} placeholder="email@icloud.com"></mitra-text-field>
 			<mitra-text-field label=${t('App-Specific Password')} type="password" ${bind({ keyPath: 'credentials.password' })} placeholder=${this.isEdit ? t('unchanged') : ''}></mitra-text-field>
 			${this.connectTemplate}

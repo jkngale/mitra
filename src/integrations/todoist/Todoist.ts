@@ -174,6 +174,7 @@ export class Todoist extends Integration<TodoistCredentials> {
 		const projectId = Todoist.projectIdOf(await em.findOneOrFail(Source, { id: entry.sourceId }))
 		const requestedStatus = entry.status
 		const task = await this.getClient().createTask(Todoist.inputFrom(entry, projectId, false, undefined, this.credentials.timeZone))
+		Todoist.rememberDuration(entry, entry, task)
 		Todoist.applyTask(entry, task, this.credentials.timeZone)
 		if (requestedStatus === TaskStatus.Done) {
 			await this.getClient().closeTask(task.id)
@@ -212,6 +213,7 @@ export class Todoist extends Integration<TodoistCredentials> {
 		if (statusChanged || !refreshed) {
 			refreshed = await this.getClient().task(existing.uri)
 		}
+		Todoist.rememberDuration(existing, incoming, refreshed)
 		Todoist.applyTask(existing, refreshed, this.credentials.timeZone)
 	}
 
@@ -223,7 +225,8 @@ export class Todoist extends Integration<TodoistCredentials> {
 	}
 
 	static applyTask(entry: Entry, task: TodoistTask, accountTimeZone = 'UTC'): void {
-		const schedule = Todoist.scheduleOf(task, accountTimeZone)
+		const localDuration = task.duration ? undefined : entry.data?.todoistDurationMinutes
+		const schedule = Todoist.scheduleOf(task, accountTimeZone, localDuration)
 		entry.type = EntryType.Task
 		entry.uri = String(task.id)
 		entry.uid = String(task.id)
@@ -242,14 +245,23 @@ export class Todoist extends Integration<TodoistCredentials> {
 		entry.reminders = null
 		entry.recurrence = null
 		entry.data = {
+			...(localDuration ? { todoistDurationMinutes: localDuration } : {}),
 			url: task.url,
 			raw: task.due ? `todoist-due:${JSON.stringify(task.due)}` : undefined,
 		}
 	}
 
-	static scheduleOf(task: TodoistTask, accountTimeZone = 'UTC'): Pick<Entry, 'start' | 'end' | 'allDay' | 'timeZone' | 'estimate'> {
+	/** Accounts without native durations keep their calendar block in Mitra's metadata. */
+	static rememberDuration(existing: Entry, incoming: Entry, task: TodoistTask): void {
+		const minutes = !incoming.allDay && incoming.start && incoming.end
+			? Math.round((incoming.end.getTime() - incoming.start.getTime()) / 60_000)
+			: incoming.estimate ?? undefined
+		existing.data = { ...existing.data, todoistDurationMinutes: !task.duration && minutes && minutes > 0 ? minutes : undefined }
+	}
+
+	static scheduleOf(task: TodoistTask, accountTimeZone = 'UTC', localDuration?: number): Pick<Entry, 'start' | 'end' | 'allDay' | 'timeZone' | 'estimate'> {
 		const due = task.due
-		const duration = task.duration ? task.duration.amount * (task.duration.unit === 'day' ? 1440 : 1) : undefined
+		const duration = task.duration ? task.duration.amount * (task.duration.unit === 'day' ? 1440 : 1) : localDuration
 		if (!due) {
 			return { start: undefined, end: undefined, allDay: false, timeZone: null, estimate: duration ?? null }
 		}

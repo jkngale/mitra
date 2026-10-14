@@ -258,6 +258,32 @@ describe('EntryStore', () => {
 			assert.equal(EntryStore.isDirty(working), false)
 		})
 
+		it('sends successive calendar moves, including two changes during an in-flight save', async () => {
+			const transport = fake()
+			EntryStore.persistence = transport.persistence
+			const working = entry({ type: EntryType.Task })
+			EntryStore.applyServerEntries([working])
+			working.moveStart(at(14))
+			const first = EntryStore.commit(working)
+			working.moveStart(at(16))
+			working.end = at(18)
+			assert.equal(EntryStore.commit(working), first)
+			await transport.respond()
+			assert.equal(transport.pending, 1)
+			await transport.respond()
+			await first
+			assert.equal(working.start?.valueOf(), at(16).valueOf())
+			assert.equal(working.end?.valueOf(), at(18).valueOf())
+			working.moveStart(at(10))
+			const second = EntryStore.commit(working)
+			await transport.respond()
+			await second
+			assert.equal(transport.calls.update, 3)
+			assert.equal(working.start?.valueOf(), at(10).valueOf())
+			assert.equal(working.end?.valueOf(), at(12).valueOf())
+			assert.equal(EntryStore.isDirty(working), false)
+		})
+
 		it('saves again when an edit lands mid-flight, keeping the newer local values', async () => {
 			const transport = fake()
 			EntryStore.persistence = transport.persistence

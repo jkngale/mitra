@@ -164,6 +164,8 @@
 	"Integration Token": "Jeton d'intégration",
 	"GoToDate.Keywords": "sauter naviguer choisir jour mois année spécifique",
 	"Notion.TokenHint": "Créez une intégration sous notion.so/profile/integrations, partagez vos bases de données de tâches avec elle (··· → Connexions) et collez son secret ici. Une base de données a besoin d'une propriété d'état et d'une propriété de date. Ses vues deviendront des sources.",
+	"AppleCalendar.PasswordHint": "Utilisez un mot de passe pour application de votre compte Apple, et non votre mot de passe habituel. L’authentification à deux facteurs doit être activée.",
+	"Create an app-specific password": "Créer un mot de passe pour application",
 	"Todoist": "Todoist",
 	"Your Todoist projects and tasks": "Vos projets et tâches Todoist",
 	"Reminders on your iPhone or iPad, via Shortcuts": "Rappels sur votre iPhone ou iPad via Raccourcis",

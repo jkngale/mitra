@@ -16,6 +16,8 @@
 	"Google.SharedCalendarsHint": "Calendars other people shared with you appear here only after you tick them at",
 	"Ics.UrlHint": "Paste a calendar link: a webcal:// address or one ending in .ics. Subscriptions are read-only: they show what the calendar publishes, and mitra never writes back to it.",
 	"Notion.TokenHint": "Create an integration at notion.so/profile/integrations, share your task databases with it (··· → Connections), then paste its secret here. A database needs a Status and a Date property. Its views become sources.",
+	"AppleCalendar.PasswordHint": "Use an app-specific password from your Apple Account, not your usual password. Two-factor authentication must be enabled.",
+	"Create an app-specific password": "Create an app-specific password",
 	"Todoist": "Todoist",
 	"Your Todoist projects and tasks": "Your Todoist projects and tasks",
 	"Reminders on your iPhone or iPad, via Shortcuts": "Reminders on your iPhone or iPad, via Shortcuts",

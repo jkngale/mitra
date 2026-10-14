@@ -79,4 +79,26 @@ describe('Todoist synchronization', () => {
 		assert.equal(entry.heading, incoming.heading)
 		assert.equal(await em.count(Entry, { sourceId: source.id }), 1)
 	})
+
+	it('persists a local calendar block across reload and a later remote synchronization', async () => {
+		const em = orm.em.fork()
+		const tasks = [{ ...task('2026-10-15T07:00:00Z'), duration: null }]
+		const { integration, source } = await seed(em, tasks)
+		await integration.syncSource(em, source)
+		await em.flush()
+		const entry = await em.findOneOrFail(Entry, { sourceId: source.id })
+		const incoming = entry.clone()
+		incoming.start = new Date('2026-10-15T12:00:00Z') as never
+		incoming.end = new Date('2026-10-15T13:00:00Z') as never
+		tasks[0] = { ...tasks[0]!, due: { date: '2026-10-15T12:00:00Z', timezone: 'Europe/Madrid' } }
+		await integration.updateEntry(em, entry, incoming)
+		await em.flush()
+		const reloaded = await orm.em.fork().findOneOrFail(Entry, { id: entry.id })
+		assert.equal(reloaded.data?.todoistDurationMinutes, 60)
+		assert.equal(reloaded.end?.toISOString(), '2026-10-15T13:00:00.000Z')
+		await integration.syncSource(em, source)
+		await em.flush()
+		assert.equal(entry.end?.toISOString(), '2026-10-15T13:00:00.000Z')
+		assert.equal(await em.count(Entry, { sourceId: source.id }), 1)
+	})
 })

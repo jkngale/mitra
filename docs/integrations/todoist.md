@@ -32,3 +32,7 @@ For a scheduled task with a timed start and an all-day deadline, Mitra has one a
 - If the token is rejected, check **Settings → Integrations → Developer** in Todoist and create a new token if needed. Edit the integration in Mitra and enter the replacement token.
 - If a project is missing, make sure it is active in Todoist, then open the integration's **⋯ → Edit** menu and choose **Refresh**.
 - If task updates do not appear immediately, wait for the next synchronization cycle (about one minute).
+
+Calendar edits are sent automatically when you finish an edit or drop a task. Further edits made while a save is pending are sent in order, with the latest placement retained. There is no need to wait for the background import interval.
+
+Todoist accounts without native task durations still keep their calendar block lengths in Mitra. The start time synchronizes to Todoist; the end time remains local to Mitra if Todoist returns no duration. Native Todoist durations, when available, take precedence on import.
