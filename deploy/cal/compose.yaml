@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  mitra:
+    image: mitra:cal-20261014.3
+    container_name: mitra-cal
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3004:3000'
+    environment:
+      MITRA_URL: 'https://cal.joaquingale.es'
+      NODE_OPTIONS: '--max-old-space-size=192'
+    volumes:
+      - ./data:/app/data
+    mem_limit: 384m
+    memswap_limit: 768m

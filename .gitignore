@@ -7,3 +7,12 @@ out/
 .DS_Store
 # Docs captures in languages other than English: the website build shoots them (npm run screenshots -- --language de).
 assets/screenshots/*/
+# Private deployment state and credentials.
+.env
+.env.*
+!.env.example
+.htpasswd*
+*.sqlite
+*.sqlite-*
+deploy/cal/data/
+deploy/cal/backups/
