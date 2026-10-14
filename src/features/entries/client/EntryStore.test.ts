@@ -258,6 +258,22 @@ describe('EntryStore', () => {
 			assert.equal(EntryStore.isDirty(working), false)
 		})
 
+		it('releases a save that fails synchronously before transport and allows the next edit', async () => {
+			const transport = fake()
+			EntryStore.persistence = { ...transport.persistence, update: () => { throw new RangeError('Invalid time value') } }
+			const working = entry()
+			EntryStore.applyServerEntries([working])
+			working.moveStart(at(14))
+			await assert.rejects(EntryStore.commit(working), /Invalid time value/)
+			EntryStore.persistence = transport.persistence
+			working.moveStart(at(16))
+			const commit = EntryStore.commit(working)
+			assert.equal(transport.calls.update, 1)
+			await transport.respond()
+			await commit
+			assert.equal(EntryStore.isDirty(working), false)
+		})
+
 		it('sends successive calendar moves, including two changes during an in-flight save', async () => {
 			const transport = fake()
 			EntryStore.persistence = transport.persistence

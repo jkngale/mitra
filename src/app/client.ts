@@ -1,6 +1,6 @@
 import '@a11d/lit-application-native'
 import '@3mo/date-time'
-import '@3mo/date-time-value-constructor'
+import '../infrastructure/http/DateTimeValueConstructor.js'
 // App translations registered after packages to override library dictionary defaults.
 import '../infrastructure/i18n/index.js'
 // Theme setting applied at module scope before UI component imports.

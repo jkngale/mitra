@@ -502,3 +502,5 @@ One fixture serves the dev account, every demo sandbox and every screenshot the 
 - **Comment Brevity & Quality**: Never write verbose, essay-style JSDocs, conversational prose, or line-by-line narrations. Code should be self-documenting. Keep comments strictly focused on non-obvious domain invariants, RFC/protocol edge cases, or platform bugs, distilled into 1–2 concise, high-signal sentences.
 
 - Todoist preserves unsupported task durations in `Entry.data.todoistDurationMinutes`; native durations supersede that fallback. Entry writes remain immediate and the client coalesces in-flight edits per entry. iCloud connection UI links to Apple app-specific passwords and explains the 2FA prerequisite.
+
+- Browser date revival is anchored to whole ISO timestamps; embedded timestamps in provider metadata and prose remain strings. EntryStore releases in-flight slots in a guarded microtask so synchronous serialization failures cannot swallow all future edits.

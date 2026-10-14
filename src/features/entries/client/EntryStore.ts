@@ -82,7 +82,7 @@ export class EntryStore extends Controller {
 			return Promise.resolve()
 		}
 		const wasClosed = entry.persisted && (this.canonicalById.get(entry.id!)?.closed ?? false)
-		const run = (async () => {
+		const run: Promise<void> = (async () => {
 			try {
 				while (this.tracks(entry) && this.isDirty(entry)) {
 					const sent = entry.clone()
@@ -126,8 +126,13 @@ export class EntryStore extends Controller {
 				}
 				throw error
 			} finally {
-				this.inflight.delete(entry)
-				this.notify()
+				// Serialization can fail before the first await, before the slot below has been installed.
+				queueMicrotask(() => {
+					if (this.inflight.get(entry) === run) {
+						this.inflight.delete(entry)
+						this.notify()
+					}
+				})
 			}
 			// Successful transition into closed state; runs outside finally so failed saves never prompt.
 			if (!wasClosed && entry.type.isTask && entry.closed && this.tracks(entry)) {
