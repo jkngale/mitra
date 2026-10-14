@@ -544,7 +544,7 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 						</mitra-button>
 						<div class="trailing">
 							<mitra-select class="view" icon="calendar-cog" label=${t('View')} title=${t('View')} .value=${this.view} @change=${(e: CustomEvent<CalendarView>) => this.setView(e.detail)}>
-								${([['year', t('Year'), 'Y'], ['month', t('Month'), 'M'], ['week', t('Week'), 'W'], ['timeline', t('Timeline'), 'L'], ['table', t('Table'), 'S']] as const).map(([view, label, key]) => html`
+								${([['day', t('Day'), 'D'], ['year', t('Year'), 'Y'], ['month', t('Month'), 'M'], ['week', t('Week'), 'W'], ['timeline', t('Timeline'), 'L'], ['table', t('Table'), 'S']] as const).map(([view, label, key]) => html`
 									<mitra-option .value=${view} label=${label}>${label}<kbd slot="detail">${key}</kbd></mitra-option>
 								`)}
 							</mitra-select>
@@ -558,10 +558,18 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 					</header>
 					<div class="calendar">
 						${choose(this.view, [
+							['day', () => html`
+								<mitra-days
+									.entries=${this.store.entries}
+									.navigatingDate=${bind(this, 'navigatingDate', { event: 'navigate' })}
+									.singleDay=${true}
+								></mitra-days>
+							`],
 							['week', () => html`
 								<mitra-days
 									.entries=${this.store.entries}
 									.navigatingDate=${bind(this, 'navigatingDate', { event: 'navigate' })}
+									.singleDay=${false}
 								></mitra-days>
 							`],
 							['month', () => html`

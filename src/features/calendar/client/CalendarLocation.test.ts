@@ -16,6 +16,12 @@ describe('CalendarLocation', () => {
 			assert.equal(location.settings, 'notifications')
 		})
 
+		it('takes the day view from its path and restores its selected date', () => {
+			const location = of('/day?date=2027-01-05')
+			assert.equal(location.view, 'day')
+			assert.equal(location.date.dayStart.valueOf(), day.valueOf())
+		})
+
 		it('falls back to the given view when the path names none or names nonsense', () => {
 			assert.equal(of('/').view, 'week')
 			assert.equal(of('/nonsense').view, 'week')

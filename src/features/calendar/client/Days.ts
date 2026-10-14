@@ -21,9 +21,13 @@ export class Days extends Component {
 	@property({ type: Object }) navigatingDate = new DateTime()
 	@property({ type: Array }) entries = new Array<Entry>()
 	@property({ type: Boolean, reflect: true }) hideTime = false
+	@property({ type: Boolean }) singleDay = false
 
 	private readonly dates: CalendarDatesController = new CalendarDatesController(this)
-	private get days(): Array<DateTime> { return this.dates.days }
+	private get days(): Array<DateTime> { return this.singleDay ? [this.dates.navigatingDate.dayStart] : this.dates.days }
+	private get visibleWindow() {
+		return this.singleDay ? { days: [this.dates.navigatingDate.dayStart], offset: 0 } : this.dates.window
+	}
 
 	/** Shared scroll-to-date metrics calculating column width and center offset. */
 	private get metrics() {
@@ -138,6 +142,7 @@ export class Days extends Component {
 		}
 		this.style.setProperty('--_days-length', this.days.length.toString())
 		this.style.setProperty('--_tz-count', this.timeZoneColumns.length.toString())
+		this.toggleAttribute('data-single-day', this.singleDay)
 		this.toggleAttribute('data-alternative-zones', this.timeZoneColumns.length > 1)
 		if (this.hideTime) {
 			this.style.removeProperty('--time-axis-width')
@@ -225,6 +230,13 @@ export class Days extends Component {
 				scrollbar-width: none;
 
 				&::-webkit-scrollbar { display: none; }
+
+				&[data-single-day] {
+					--_visible-days: 1;
+					--_day-width: max(4rem, calc(100cqi - var(--time-axis-width) - 1px));
+					overflow-x: clip;
+					scroll-snap-type: none;
+				}
 
 				&[hideTime] {
 					--time-axis-width: 0px;
@@ -443,14 +455,14 @@ export class Days extends Component {
 	private get connectionsTemplate() {
 		return !EntryConnections.isEnabledFor('week') ? html.nothing : html`
 			<mitra-entry-connections draft-host
-				.segments=${[...this.laneSegments, ...this.dates.window.days.flatMap(day => this.segments.timedOn(day))]}
+				.segments=${[...this.laneSegments, ...this.visibleWindow.days.flatMap(day => this.segments.timedOn(day))]}
 				.placement=${this.lanePlacement}
 			></mitra-entry-connections>
 		`
 	}
 
 	private get allDayTemplate() {
-		const { days, offset } = this.dates.window
+		const { days, offset } = this.visibleWindow
 		const first = days[0]
 		const last = days.at(-1)
 		this.laneSegments = []
@@ -560,7 +572,7 @@ export class Days extends Component {
 
 	private get dateTemplate() {
 		const todayValue = new DateTime().dayStart.valueOf()
-		const { days, offset } = this.dates.window
+		const { days, offset } = this.visibleWindow
 		return html`
 			${repeat(days, day => day.dayStart.toISOString(), (day, index) => html`
 				<mitra-day

@@ -1,6 +1,16 @@
 import { command, Command } from '../../commands/Command.js'
 
 @command()
+export class DayView extends Command {
+	heading = t('Day View')
+	icon = 'calendar'
+	keywords = t('DayView.Keywords')
+	keys = ['d']
+	group = 'views'
+	execute() { this.calendar.setView('day') }
+}
+
+@command()
 export class WeekView extends Command {
 	heading = t('Week View')
 	icon = 'columns-3'

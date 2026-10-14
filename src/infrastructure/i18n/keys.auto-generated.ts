@@ -100,6 +100,8 @@ declare global {
 		"App-Specific Password": unknown
 		"Apple Calendar": unknown
 		"Apple ID": unknown
+		"Apple Reminders": unknown
+		"AppleReminders.ShortcutHint": unknown
 		"Apply to subtasks too?": unknown
 		"Ask everyone to attend": unknown
 		"Ask this participant to attend": unknown
@@ -169,6 +171,7 @@ declare global {
 		"Copy instead": unknown
 		"Copy participants' emails": unknown
 		"Copy to ${name}": unknown
+		"Copy token": unknown
 		"Copy Version": unknown
 		"Copying ${count:pluralityNumber} entries…": unknown
 		"CopyVersion.Keywords": unknown
@@ -182,7 +185,10 @@ declare global {
 		"Custom range": unknown
 		"Custom…": unknown
 		"Dark": unknown
+		"Day": unknown
+		"Day View": unknown
 		"days": unknown
+		"DayView.Keywords": unknown
 		"Default Calendar": unknown
 		"Default Duration": unknown
 		"Default event reminder": unknown
@@ -260,6 +266,7 @@ declare global {
 		"From": unknown
 		"From ${date}": unknown
 		"General": unknown
+		"Generate token": unknown
 		"Go to Date…": unknown
 		"Go to entry": unknown
 		"Go to Today": unknown
@@ -347,6 +354,7 @@ declare global {
 		"Next 12 months": unknown
 		"Next 30 days": unknown
 		"Next 7 days": unknown
+		"Next Day": unknown
 		"Next month": unknown
 		"Next Month": unknown
 		"Next Week": unknown
@@ -403,6 +411,7 @@ declare global {
 		"Plan your days": unknown
 		"Planned": unknown
 		"Planning": unknown
+		"Previous Day": unknown
 		"Previous month": unknown
 		"Previous Month": unknown
 		"Previous Week": unknown
@@ -425,6 +434,7 @@ declare global {
 		"Reminder": unknown
 		"Reminder notifications": unknown
 		"Reminders": unknown
+		"Reminders on your iPhone or iPad, via Shortcuts": unknown
 		"Reminders you add are always saved; this decides whether this browser may also alert you.": unknown
 		"Remove": unknown
 		"Remove all": unknown
@@ -464,6 +474,7 @@ declare global {
 		"Server URL": unknown
 		"Set as the default for new entries": unknown
 		"Settings": unknown
+		"Shortcut access token": unknown
 		"Show as busy or free": unknown
 		"Show calendar": unknown
 		"Show fewer participants": unknown
@@ -536,6 +547,9 @@ declare global {
 		"Title": unknown
 		"To Do": unknown
 		"Today": unknown
+		"Todoist": unknown
+		"Todoist API Token": unknown
+		"Todoist.TokenHint": unknown
 		"Toggle sidebar": unknown
 		"Toggle Sidebar": unknown
 		"Toggle.Off": unknown
@@ -575,6 +589,7 @@ declare global {
 		"Year View": unknown
 		"YearView.Keywords": unknown
 		"Yesterday": unknown
+		"Your Todoist projects and tasks": unknown
 		"Zoom the view": unknown
 	}
 }
