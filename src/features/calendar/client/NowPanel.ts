@@ -34,9 +34,20 @@ export class NowPanel extends Component {
 
 	protected override createRenderRoot() { return this }
 
+	/** The panel renders every second; building `Intl` formatters is slow in Safari, so each is made once per locale. */
+	private static readonly formatters = new Map<string, unknown>()
+
+	private formatter<T>(kind: string, create: () => T): T {
+		const key = `${String(this.locale)}|${kind}`
+		if (!NowPanel.formatters.has(key)) {
+			NowPanel.formatters.set(key, create())
+		}
+		return NowPanel.formatters.get(key) as T
+	}
+
 	/** The clock as the locale writes it, with the seconds (and the separator leading to them) set apart to tick. */
 	private clockTemplate(now: DateTime) {
-		const parts = new Intl.DateTimeFormat(this.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: now.timeZone }).formatToParts(now)
+		const parts = this.formatter(`clock|${now.timeZone}`, () => new Intl.DateTimeFormat(this.locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: now.timeZone })).formatToParts(now)
 		return parts.map((part, index) => part.type === 'second' || (part.type === 'literal' && parts[index + 1]?.type === 'second')
 			? html`<span class="seconds">${part.value}</span>`
 			: part.type === 'dayPeriod' ? html`<span class="period">${part.value}</span>` : part.value)
@@ -59,7 +70,7 @@ export class NowPanel extends Component {
 	}
 
 	private relative(milliseconds: number) {
-		const format = new Intl.RelativeTimeFormat(this.locale, { numeric: 'auto', style: 'long' })
+		const format = this.formatter('relative', () => new Intl.RelativeTimeFormat(this.locale, { numeric: 'auto', style: 'long' }))
 		const minutes = milliseconds / minute
 		if (Math.abs(minutes) < 1) {
 			return format.format(Math.round(milliseconds / 1000), 'second')
@@ -78,7 +89,7 @@ export class NowPanel extends Component {
 		const total = Math.max(1, Math.ceil(milliseconds / minute))
 		const hours = Math.floor(total / 60)
 		const minutes = total % 60
-		return new Intl.DurationFormat(this.locale, { style: 'short' }).format(hours ? { hours, minutes } : { minutes })
+		return this.formatter('duration', () => new Intl.DurationFormat(this.locale, { style: 'short' })).format(hours ? { hours, minutes } : { minutes })
 	}
 
 	private time(date: DateTime) {
@@ -181,12 +192,6 @@ export class NowPanel extends Component {
 
 	static override get styles() {
 		return css`
-			@property --mitra-now-panel-glow {
-				syntax: '<length>';
-				inherits: false;
-				initial-value: 0px;
-			}
-
 			mitra-now-panel {
 				display: flex;
 				flex-direction: column;
@@ -356,15 +361,20 @@ export class NowPanel extends Component {
 						overflow: hidden;
 						background-color: color-mix(in srgb, var(--mitra-entry-segment-color) 20%, transparent);
 
+						/* Scaled rather than sized: it moves every second, and a width transition reflowed the page all the while (Safari stuttered). */
 						.fill {
 							position: absolute;
-							inset-block: 0;
-							inset-inline-start: 0;
-							inline-size: calc(var(--progress) * 100%);
+							inset: 0;
 							border-radius: inherit;
 							background-color: var(--mitra-entry-segment-color);
-							transition: inline-size 1s linear;
+							scale: var(--progress) 1;
+							transform-origin: 0 50%;
+							transition: scale 1s linear;
 							overflow: hidden;
+
+							&:dir(rtl) {
+								transform-origin: 100% 50%;
+							}
 
 							&::after {
 								content: '';
@@ -421,9 +431,16 @@ export class NowPanel extends Component {
 						color: color-mix(in srgb, var(--mitra-entry-segment-color) 55%, var(--color-text));
 					}
 
-					&[data-imminent] {
-						animation: mitra-now-enter 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both, mitra-now-glow 1.8s ease-in-out infinite;
-						box-shadow: 0 0 0 var(--mitra-now-panel-glow) color-mix(in srgb, var(--mitra-entry-segment-color) 35%, transparent);
+					/* A halo that only fades, so the compositor runs it: an animated shadow repainted every frame. */
+					&[data-imminent]::after {
+						content: '';
+						position: absolute;
+						inset: 0;
+						border-radius: inherit;
+						box-shadow: 0 0 0 0.375rem color-mix(in srgb, var(--mitra-entry-segment-color) 35%, transparent);
+						pointer-events: none;
+						opacity: 0;
+						animation: mitra-now-glow 1.8s ease-in-out infinite;
 					}
 				}
 
@@ -503,8 +520,8 @@ export class NowPanel extends Component {
 			}
 
 			@keyframes mitra-now-glow {
-				0%, 100% { --mitra-now-panel-glow: 0px; }
-				50% { --mitra-now-panel-glow: 0.375rem; }
+				0%, 100% { opacity: 0; }
+				50% { opacity: 1; }
 			}
 		`
 	}
