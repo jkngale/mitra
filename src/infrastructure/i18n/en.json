@@ -29,6 +29,7 @@
 	"ShowOnlySource.Keywords": "calendar source solo focus hide others only visible",
 	"ShowPreviouslyVisibleSources.Keywords": "calendar source restore unsolo back all visible again",
 	"WeekView.Keywords": "switch",
+	"DayView.Keywords": "switch today agenda",
 	"McpSetting.Keywords": "connector connectors ai artificial intelligence agents mcp claude cursor token access model automation",
 	"GoToToday.Keywords": "now current date jump",
 	"NextPeriod.Keywords": "forward later",

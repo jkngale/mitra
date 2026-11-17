@@ -19,6 +19,12 @@ describe('CalendarPeriod', () => {
 		assert.equal(CalendarPeriod.ofView('table'), undefined)
 	})
 
+	it('steps and titles a day by the day', () => {
+		assert.deepEqual(CalendarPeriod.of('day').step, { days: 1 })
+		assert.equal(CalendarPeriod.ofView('day'), CalendarPeriod.of('day'))
+		assert.equal(CalendarPeriod.of('day').title(date), date.format({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))
+	})
+
 	it('titles a week by its month, which also has a short form', () => {
 		assert.equal(CalendarPeriod.of('week').title(date), CalendarPeriod.of('month').title(date))
 		assert.notEqual(CalendarPeriod.of('week').title(date, 'short'), CalendarPeriod.of('week').title(date))

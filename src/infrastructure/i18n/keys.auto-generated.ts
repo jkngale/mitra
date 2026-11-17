@@ -234,7 +234,10 @@ declare global {
 		"CustomCssSetting.Keywords": unknown
 		"Dark": unknown
 		"Date": unknown
+		"Day": unknown
+		"Day View": unknown
 		"days": unknown
+		"DayView.Keywords": unknown
 		"Default Calendar": unknown
 		"Default Duration": unknown
 		"Default event reminder": unknown
@@ -439,6 +442,7 @@ declare global {
 		"Next 12 months": unknown
 		"Next 30 days": unknown
 		"Next 7 days": unknown
+		"Next Day": unknown
 		"Next month": unknown
 		"Next Month": unknown
 		"Next Week": unknown
@@ -512,6 +516,7 @@ declare global {
 		"Planned": unknown
 		"Planning": unknown
 		"Plus ${link} on GitHub: tests, builds and chores.": unknown
+		"Previous Day": unknown
 		"Previous month": unknown
 		"Previous Month": unknown
 		"Previous Week": unknown

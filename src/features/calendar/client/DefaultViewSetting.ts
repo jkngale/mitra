@@ -17,6 +17,7 @@ export class DefaultViewSetting extends ChoiceSetting<CalendarView> {
 	/** Localized view display label. */
 	private static label(view: CalendarView): string {
 		switch (view) {
+			case 'day': return t('Day')
 			case 'week': return t('Week')
 			case 'month': return t('Month')
 			case 'year': return t('Year')

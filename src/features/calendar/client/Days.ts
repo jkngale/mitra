@@ -26,6 +26,8 @@ export class Days extends Component {
 	@property({ type: Boolean }) stepping = false
 	@property({ type: Array }) occurrences = new Array<EntryOccurrence>()
 	@property({ type: Boolean, reflect: true }) hideTime = false
+	/** The day view: the week's strip, one day wide, so scrolling, swiping and dragging work as they do across a week. */
+	@property({ type: Boolean }) singleDay = false
 
 	private readonly dates: CalendarDatesController = new CalendarDatesController(this)
 	private get days(): Array<DateTime> { return this.dates.days }
@@ -182,6 +184,7 @@ export class Days extends Component {
 		this.style.setProperty('--_days-length', this.days.length.toString())
 		this.style.setProperty('--_tz-count', this.timeZoneColumns.length.toString())
 		this.toggleAttribute('data-alternative-zones', this.timeZoneColumns.length > 1)
+		this.toggleAttribute('data-single-day', this.singleDay)
 		this.updateLaneHeight()
 		this.applyScrollRange()
 		// The header renders its names after this.
@@ -260,6 +263,7 @@ export class Days extends Component {
 				--time-axis-width: calc(var(--_axis-rest, 3.75rem) + (var(--_tz-count, 1) - 1) * var(--zone-width));
 
 				&[data-alternative-zones] :is(.timezone, .axis) { touch-action: pan-y; }
+				&[data-single-day] { --_visible-days: 1; }
 				&[data-zones-folded] { --zone-width: 0px; }
 				&[data-zones-immediate] { transition: none; }
 
