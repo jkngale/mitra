@@ -49,6 +49,8 @@ export interface EntryData {
 	etag?: string
 	url?: string
 	localWriteAt?: number
+	/** A Todoist task's length where the plan holds none, kept by Mitra so its calendar block survives every sync. */
+	todoistDurationMinutes?: number
 }
 
 /** What says how an entry's dates travel, read from the entry or from what the wire carries of it: days, or a floating wall clock. */

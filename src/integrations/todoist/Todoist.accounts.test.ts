@@ -349,7 +349,7 @@ describe('A Todoist account as Todoist answers it', () => {
 				assert.deepEqual([upstream.due?.date, upstream.due?.timezone], ['2026-11-06T10:00:00', null], 'a floating time')
 				assert.deepEqual(upstream.duration ?? null, pro ? { amount: 60, unit: 'minute' } : null)
 				assert.deepEqual(upstream.deadline?.date, pro ? '2026-11-07' : undefined)
-				assert.equal(iso(created.end), pro ? '2026-11-06T11:00:00.000Z' : undefined, 'without durations, a moment')
+				assert.equal(iso(created.end), '2026-11-06T11:00:00.000Z', 'without durations, Mitra keeps the length')
 			})
 
 			it('refuses a due date where the plan has no deadlines', { skip: pro && 'the plan has them' }, async () => {

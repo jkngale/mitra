@@ -31,7 +31,7 @@ A task without a date waits in the **Unscheduled** list of the [Planning tab](..
 
 Todoist keeps a time either floating, the same on every clock wherever you are, or fixed in a time zone. Mitra keeps both as they are: a floating time stays the [same time everywhere](../time-zones.md#same-time-everywhere), and a fixed one keeps its zone.
 
-Deadlines and durations are part of Todoist's Pro and Business plans. On a free account, Todoist tasks have no due date, end or estimate in Mitra: a task with a time is a moment, and a task on a day takes that day alone. When your plan changes, as a trial begins or ends, Mitra reads every task again. A deadline is a day, so a due date you give a time in Mitra keeps only its day.
+Deadlines and durations are part of Todoist's Pro and Business plans. On a free account, Todoist tasks have no due date in Mitra, and their length is kept by Mitra alone: give a task with a time an end, or an unscheduled one an estimate, and it keeps that block through every sync, moving with the task when Todoist moves it. Todoist itself never sees the length, and disconnecting Todoist loses it. A task on a day takes that day alone. When your plan changes, as a trial begins or ends, Mitra reads every task again. A deadline is a day, so a due date you give a time in Mitra keeps only its day.
 
 Mitra doesn't show a task's priority, labels, section, comments or reminders, and leaves them as they are in Todoist. Moving a task to another Todoist calendar moves it to that project, and keeps all of them.
 

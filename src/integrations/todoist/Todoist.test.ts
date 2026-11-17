@@ -100,7 +100,7 @@ describe('Todoist dates', () => {
 
 	it('writes no length on a plan without durations, whose tasks keep the one they have', () => {
 		const free = account(false)
-		assert.equal(free.ownership.holds('estimate'), false)
+		assert.equal(free.ownership.ownerOf('estimate'), 'mitra')
 		const { existing, incoming } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID }, duration: { amount: 45, unit: 'minute' } }, free)
 		assert.equal(iso(existing.end), '2026-10-13T17:15:00.000Z')
 		incoming.start = at('2026-10-14T16:30:00Z')
@@ -160,9 +160,9 @@ describe('Todoist deadlines', () => {
 		assert.deepEqual(commandsFor(existing, incoming)[0]!.args, { id: 'task-1', deadline: { date: '2026-10-17' } })
 	})
 
-	it('holds deadlines and lengths only on a plan that has them', () => {
+	it('holds deadlines only on a plan that has them, and keeps lengths as Mitra\'s on one without durations', () => {
 		const free = account(false)
-		assert.deepEqual(['due', 'end', 'estimate'].map(field => free.ownership.holds(field as never)), [false, false, false])
+		assert.deepEqual(['due', 'end', 'estimate'].map(field => free.ownership.ownerOf(field as never)), [undefined, 'mitra', 'mitra'])
 		assert.deepEqual(['due', 'end', 'estimate'].map(field => account().ownership.ownerOf(field as never)), ['upstream', 'upstream', 'upstream'])
 
 		const { existing, incoming } = read({ deadline: { date: '2026-10-16' } }, free)
@@ -337,5 +337,57 @@ describe('Todoist account', () => {
 	it('withholds its token from the wire', () => {
 		assert.equal(wireOf(account()).credentials.token, '')
 		assert.equal(asBrowser(() => wireOf(account())).credentials.token, 'todoist-secret')
+	})
+})
+
+describe('Todoist lengths kept by Mitra', () => {
+	it('keeps a timed task\'s block through a read that carries no duration', () => {
+		const free = account(false)
+		const { existing } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }, free)
+		existing.end = at('2026-10-13T18:00:00Z')
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }), { ownership: free.ownership, zone: Todoist.zoneOf(free) })
+		assert.equal(iso(existing.end), '2026-10-13T18:00:00.000Z')
+		assert.equal(existing.data?.todoistDurationMinutes, 90)
+	})
+
+	it('moves the block with the task when Todoist moves it', () => {
+		const free = account(false)
+		const { existing } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }, free)
+		existing.end = at('2026-10-13T17:00:00Z')
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-15T09:00:00Z', timezone: MADRID } }), { ownership: free.ownership, zone: Todoist.zoneOf(free) })
+		assert.deepEqual([iso(existing.start), iso(existing.end)], ['2026-10-15T09:00:00.000Z', '2026-10-15T09:30:00.000Z'])
+	})
+
+	it('drops the length when the task becomes a day', () => {
+		const free = account(false)
+		const { existing } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }, free)
+		existing.end = at('2026-10-13T17:00:00Z')
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-14', timezone: null } }), { ownership: free.ownership, zone: Todoist.zoneOf(free) })
+		assert.equal(existing.allDay, true)
+		assert.equal(existing.data?.todoistDurationMinutes, undefined)
+	})
+
+	it('reads a length kept from an earlier edition when the entry has none', () => {
+		const free = account(false)
+		const { existing } = read({}, free)
+		existing.data = { ...existing.data, todoistDurationMinutes: 25 }
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }), { ownership: free.ownership, zone: Todoist.zoneOf(free) })
+		assert.equal(iso(existing.end), '2026-10-13T16:55:00.000Z')
+	})
+
+	it('takes an edit of the length alone without telling Todoist', () => {
+		const free = account(false)
+		const { existing, incoming } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }, free)
+		incoming.end = at('2026-10-13T17:45:00Z')
+		assert.deepEqual(commandsFor(existing, incoming, free), [])
+		Todoist.keepLocalLength(existing, incoming, free.ownership)
+		assert.deepEqual([iso(existing.end), existing.data?.todoistDurationMinutes], ['2026-10-13T17:45:00.000Z', 75])
+	})
+
+	it('leaves lengths to Todoist on a plan with durations', () => {
+		const { existing } = read({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } })
+		existing.end = at('2026-10-13T18:00:00Z')
+		Todoist.applyTask(existing, task({ due: { date: '2026-10-13T16:30:00Z', timezone: MADRID } }), { ownership: account().ownership, zone: Todoist.zoneOf(account()) })
+		assert.equal(existing.end, undefined)
 	})
 })

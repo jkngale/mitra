@@ -40,7 +40,7 @@ export class TodoistSyncEngine implements AccountSyncEngine {
 		// Every sync discovers first, so a trial begun or ended shows here; what Mitra then holds of each task changed, so it reads them all again.
 		const held = todoist.ownership
 		todoist.adopt({ user, limits: user_plan_limits?.current })
-		if ((['due', 'estimate'] as const).some(field => held.holds(field) !== todoist.ownership.holds(field))) {
+		if ((['due', 'estimate'] as const).some(field => held.ownerOf(field) !== todoist.ownership.ownerOf(field))) {
 			todoist.syncState = { ...todoist.syncState, token: undefined }
 		}
 		return Todoist.sourcesFrom(projects ?? [])
@@ -193,6 +193,7 @@ export class TodoistSyncEngine implements AccountSyncEngine {
 		const relations = incoming.relations ?? existing.relations
 		if (!commands.length) {
 			existing.relations = relations
+			Todoist.keepLocalLength(existing, incoming, todoist.ownership)
 			return
 		}
 		await this.client(todoist).execute(commands)

@@ -172,13 +172,14 @@ export class Todoist extends Integration<TodoistCredentials> {
 
 	/**
 	 * Subtasks are mirrored to `parent_id`, but dependencies have nowhere to go, so the relations are Mitra's. Deadlines are
-	 * held only where the plan has them, and a length, the end or the estimate, only where it has durations.
+	 * held only where the plan has them. A length, the end or the estimate, is Todoist's where the plan has durations and
+	 * Mitra's where it has none, so a task keeps its block on the calendar either way.
 	 */
 	override get ownership() {
 		return new IntegrationOwnership({
 			description: 'upstream', allDay: 'upstream', timeZone: 'upstream',
 			...this.credentials.deadlines ? { due: 'upstream' } : {},
-			...this.credentials.durations ? { end: 'upstream', estimate: 'upstream' } : {},
+			...this.credentials.durations ? { end: 'upstream', estimate: 'upstream' } : { end: 'mitra', estimate: 'mitra' },
 			relations: 'mitra', rank: 'mitra',
 		})
 	}
@@ -309,8 +310,43 @@ export class Todoist extends Integration<TodoistCredentials> {
 	}
 
 	/** Maps a task onto `entry`, keeping the task itself so a write leaves what Mitra does not show as it is. */
-	static applyTask(entry: Entry, task: TodoistTask, { ownership, zone, relations }: { ownership: Pick<IntegrationOwnership, 'holds'>, zone: string, relations?: EntryRelations }) {
-		const schedule = Todoist.scheduleOf(task)
+	/** The minutes a task lasts as Mitra holds it: its span, else its estimate, else what the last read kept. */
+	static localLengthOf(entry: Pick<Entry, 'start' | 'end' | 'allDay' | 'estimate' | 'data'>) {
+		const minutes = entry.start && entry.end && !entry.allDay
+			? Math.round((entry.end.getTime() - entry.start.getTime()) / 60_000)
+			: entry.estimate ?? entry.data?.todoistDurationMinutes
+		return minutes && minutes > 0 ? minutes : undefined
+	}
+
+	/** A schedule Todoist gave no length, lengthened by Mitra's own: a timed task gets its end, an unscheduled one its estimate. A day keeps none. */
+	static withLocalLength(schedule: ReturnType<typeof Todoist.scheduleOf>, minutes: number | undefined) {
+		if (!minutes || schedule.allDay || schedule.end || schedule.estimate) {
+			return { schedule, kept: undefined }
+		}
+		return schedule.start
+			? { schedule: { ...schedule, end: new Date(schedule.start.getTime() + minutes * 60_000) as never }, kept: minutes }
+			: { schedule: { ...schedule, estimate: minutes }, kept: minutes }
+	}
+
+	/** Whether a length is Mitra's to keep, as it is on a plan without durations. */
+	static keepsLength(ownership: Pick<IntegrationOwnership, 'ownerOf'>) {
+		return ownership.ownerOf('end') === 'mitra'
+	}
+
+	/** Takes the length an edit gave `incoming` where Todoist holds none, as nothing about it goes to Todoist. */
+	static keepLocalLength(existing: Entry, incoming: Entry, ownership: Pick<IntegrationOwnership, 'ownerOf'>) {
+		if (!Todoist.keepsLength(ownership)) {
+			return
+		}
+		existing.end = incoming.end
+		existing.estimate = incoming.estimate
+		const minutes = Todoist.localLengthOf({ ...incoming, data: undefined })
+		existing.data = { ...existing.data, todoistDurationMinutes: minutes }
+	}
+
+	static applyTask(entry: Entry, task: TodoistTask, { ownership, zone, relations }: { ownership: Pick<IntegrationOwnership, 'holds' | 'ownerOf'>, zone: string, relations?: EntryRelations }) {
+		const local = Todoist.keepsLength(ownership) && !task.duration ? Todoist.localLengthOf(entry) : undefined
+		const { schedule, kept } = Todoist.withLocalLength(Todoist.scheduleOf(task), local)
 		const deadline = ownership.holds('due') ? task.deadline : undefined
 		entry.type = EntryType.Task
 		entry.uri = task.id
@@ -334,7 +370,7 @@ export class Todoist extends Integration<TodoistCredentials> {
 		entry.participants = undefined
 		entry.transparency = undefined
 		entry.visibility = undefined
-		entry.data = { raw: JSON.stringify(task), etag: task.updated_at ?? undefined, url: Todoist.taskUrl(task.id) }
+		entry.data = { raw: JSON.stringify(task), etag: task.updated_at ?? undefined, url: Todoist.taskUrl(task.id), ...kept ? { todoistDurationMinutes: kept } : {} }
 	}
 
 	static storedTaskOf(entry: Pick<Entry, 'data'>) {
@@ -403,18 +439,18 @@ export class Todoist extends Integration<TodoistCredentials> {
 	}
 
 	/** Everything Mitra writes of `entry`, so a new task and a changed one are told the same. A plan without durations holds no estimate and no length. */
-	static argsFrom(entry: Entry, stored: TodoistTask | undefined, ownership: Pick<IntegrationOwnership, 'holds'>, zone: string) {
+	static argsFrom(entry: Entry, stored: TodoistTask | undefined, ownership: Pick<IntegrationOwnership, 'holds' | 'ownerOf'>, zone: string) {
 		return {
 			content: entry.heading,
 			description: entry.description ?? '',
 			due: Todoist.dueFrom(entry, stored?.due, zone),
-			...ownership.holds('estimate') ? { duration: Todoist.durationFrom(entry, stored?.duration) } : {},
+			...ownership.ownerOf('estimate') === 'upstream' ? { duration: Todoist.durationFrom(entry, stored?.duration) } : {},
 			...ownership.holds('due') ? { deadline: Todoist.deadlineFrom(entry, zone) } : {},
 		}
 	}
 
 	/** The commands that create `entry` in `projectId`: a done task is added, then closed. */
-	static addCommandsFor(entry: Entry, { projectId, tempId, ownership, context }: { projectId: string, tempId: string, ownership: Pick<IntegrationOwnership, 'holds'>, context: TodoistWriteContext }) {
+	static addCommandsFor(entry: Entry, { projectId, tempId, ownership, context }: { projectId: string, tempId: string, ownership: Pick<IntegrationOwnership, 'holds' | 'ownerOf'>, context: TodoistWriteContext }) {
 		const { due, deadline, duration, ...args } = Todoist.argsFrom(entry, undefined, ownership, context.zone)
 		const parentId = Todoist.parentIdFrom(entry.relations, context.isTask)
 		return [
@@ -435,7 +471,7 @@ export class Todoist extends Integration<TodoistCredentials> {
 	 * The commands that make the task `existing` stands for into `incoming`: only the fields that differ, so what Mitra
 	 * does not show stays, then a move, then completion. Both are written out the same way and compared there.
 	 */
-	static commandsFor(existing: Entry, incoming: Entry, { projectId, ownership, context }: { projectId: string, ownership: Pick<IntegrationOwnership, 'holds'>, context: TodoistWriteContext }) {
+	static commandsFor(existing: Entry, incoming: Entry, { projectId, ownership, context }: { projectId: string, ownership: Pick<IntegrationOwnership, 'holds' | 'ownerOf'>, context: TodoistWriteContext }) {
 		const id = existing.uri
 		if (!id) {
 			throw new Error('This entry has no Todoist task id')
