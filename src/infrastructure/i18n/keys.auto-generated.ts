@@ -52,6 +52,7 @@ declare global {
 		"${done:number} of ${total:pluralityNumber} checklist items done": unknown
 		"${done:number} of ${total:pluralityNumber} steps done": unknown
 		"${done:number} of ${total:pluralityNumber} subtasks done": unknown
+		"${duration} left": unknown
 		"${n:number}nd": unknown
 		"${n:number}rd": unknown
 		"${n:number}st": unknown
@@ -264,6 +265,8 @@ declare global {
 		"Flattening writes out a year of occurrences as separate entries. They stop repeating, and links pointing at the series are left behind.": unknown
 		"Forward": unknown
 		"Free": unknown
+		"Free time": unknown
+		"Free until ${time}": unknown
 		"Frequency": unknown
 		"From": unknown
 		"From ${date}": unknown
@@ -279,6 +282,7 @@ declare global {
 		"Google.SharedCalendarsHint": unknown
 		"GoToDate.Keywords": unknown
 		"GoToToday.Keywords": unknown
+		"Happening now": unknown
 		"Hide availability": unknown
 		"Hide calendar": unknown
 		"Hide column": unknown
@@ -305,6 +309,7 @@ declare global {
 		"Language": unknown
 		"LanguageSetting.Keywords": unknown
 		"last seen ${when}": unknown
+		"Later today": unknown
 		"Latest": unknown
 		"Leave the originals here and add a copy over there": unknown
 		"Leave them here": unknown
@@ -371,6 +376,8 @@ declare global {
 		"No release notes available": unknown
 		"No status": unknown
 		"None": unknown
+		"Nothing else coming up": unknown
+		"Nothing else today": unknown
 		"Nothing from the file was added.": unknown
 		"Nothing is deleted here until its copy has landed": unknown
 		"Nothing planned yet. Draw a task on the row below": unknown
@@ -498,6 +505,7 @@ declare global {
 		"Sort descending": unknown
 		"Sources": unknown
 		"Start date": unknown
+		"Started ${when}": unknown
 		"Status": unknown
 		"Stop notifying this device": unknown
 		"Subtask of": unknown
@@ -552,6 +560,7 @@ declare global {
 		"Todoist": unknown
 		"Todoist API Token": unknown
 		"Todoist.TokenHint": unknown
+		"Toggle live panel": unknown
 		"Toggle sidebar": unknown
 		"Toggle Sidebar": unknown
 		"Toggle.Off": unknown
@@ -567,6 +576,7 @@ declare global {
 		"Unscheduled": unknown
 		"Until": unknown
 		"Untitled": unknown
+		"Up next": unknown
 		"Update available: ${version}": unknown
 		"Username": unknown
 		"Username (optional)": unknown

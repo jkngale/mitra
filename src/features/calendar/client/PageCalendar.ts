@@ -40,6 +40,14 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 	@state() private settingsPage?: SettingsPageId
 	@state() sidebarOpen = PageCalendar.preferredSidebarOpen
 
+	/** The live panel only exists on wide screens (CSS hides it below 1200px), so its choice is a desktop preference. */
+	@state() nowPanelOpen = localStorage.getItem('Mitra.NowPanelCollapsed') !== 'true'
+
+	readonly toggleNowPanel = () => {
+		this.nowPanelOpen = !this.nowPanelOpen
+		localStorage.setItem('Mitra.NowPanelCollapsed', String(!this.nowPanelOpen))
+	}
+
 	readonly mediaController = new MediaQueryController(this, '(min-width: 800px)', () => this.sidebarOpen = PageCalendar.preferredSidebarOpen)
 
 	private static get preferredSidebarOpen() {
@@ -455,9 +463,14 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 							min-inline-size: 7rem;
 							font-weight: 400;
 
+							/* The button inside shrinks with its host; at its own content size it painted over the view select. */
 							&::part(button) {
 								justify-content: flex-start;
 								border-radius: calc(2 * var(--border-radius));
+								box-sizing: border-box;
+								inline-size: 100%;
+								min-inline-size: 0;
+								overflow: hidden;
 							}
 
 							span {
@@ -489,6 +502,13 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 						@container (max-width: 52rem) {
 							.trailing {
 								flex: none;
+							}
+						}
+
+						/* Its panel only shows on wide screens, so the switch does too. */
+						.live {
+							@media (max-width: 1199px) {
+								display: none;
 							}
 						}
 					}
@@ -554,6 +574,7 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 								${this.commandButton(GoToToday, { className: 'today', icon: 'calendar-1', label: t('Today') })}
 								${!this.period ? html.nothing : this.commandButton(NextPeriod, { className: 'next', icon: 'chevron-right' })}
 							</div>
+							<mitra-icon-button class="live" icon="panel-right" label=${t('Toggle live panel')} title=${t('Toggle live panel')} ?data-open=${this.nowPanelOpen} @click=${this.toggleNowPanel}></mitra-icon-button>
 						</div>
 					</header>
 					<div class="calendar">
@@ -602,6 +623,7 @@ export class PageCalendar extends PageComponent<CalendarParameters> {
 						])}
 					</div>
 				</main>
+				<mitra-now-panel ?hidden=${!this.nowPanelOpen} @navigate=${(e: CustomEvent<DateTime>) => this.navigatingDate = e.detail}></mitra-now-panel>
 				<mitra-command-palette
 					.commands=${this.paletteCommands}
 					@navigate=${(e: CustomEvent<DateTime>) => this.navigatingDate = e.detail}
