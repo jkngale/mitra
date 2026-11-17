@@ -22,6 +22,48 @@
 
 </div>
 
+## About this edition
+
+This is Joaquín Gale's edition of [Mitra](https://github.com/a11delavar/mitra), the calendar I plan my days with. It is based on Mitra 0.6 and adds:
+
+- **Live panel**: on wide screens, a column beside the calendar shows what is happening now (how long ago it started, how far along it is, how much is left), what comes next with a countdown, and the rest of today.
+- **Day view**: a single day on the time grid, next to week, month, year, timeline and table.
+- **Todoist**: tasks synced both ways, keeping their place on the calendar through every edit and sync. See [docs/integrations/todoist.md](docs/integrations/todoist.md).
+- **Apple Reminders**: through a Shortcut. See [docs/integrations/apple-reminders.md](docs/integrations/apple-reminders.md).
+- **Sync fixes**: task schedules kept across time zones, and CalDAV servers that refuse change reports still sync.
+
+All credit for Mitra itself goes to [a11delavar](https://github.com/a11delavar) and its contributors. This edition is not affiliated with the official project; the official Mitra is newer and has its own Todoist integration, but not the additions above.
+
+### Install this edition
+
+You need [Docker](https://www.docker.com/products/docker-desktop/). Create a folder with this `compose.yaml`:
+
+```yaml
+services:
+  mitra:
+    image: ghcr.io/jkngale/mitra:latest
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./data:/app/data
+    environment:
+      # The update notice points at the official Mitra, which lacks this edition's additions.
+      MITRA_UPDATE_CHECK: 'off'
+```
+
+Then run `docker compose up -d` in that folder and open http://localhost:3000. Everything Mitra stores is in `./data`. To update this edition, run `docker compose pull` and `docker compose up -d` again.
+
+### En español
+
+Esta es mi edición de Mitra: añade un **panel en directo** (qué estás haciendo ahora, cuánto falta y qué viene después), **vista de día**, **Todoist** y **Apple Reminders**. Para instalarla, instala Docker Desktop, crea una carpeta con el `compose.yaml` de arriba, ejecuta `docker compose up -d` y abre http://localhost:3000. Tus datos quedan en la carpeta `data`.
+
+### License
+
+Like Mitra, this edition is licensed under the [AGPL-3.0](LICENSE). Its complete source is this repository.
+
+---
+
 > [!WARNING]
 >
 > Mitra is early and moving fast. Expect rough edges and breaking changes before `1.0`.

@@ -42,6 +42,8 @@ jobs:
   # The site's languages but English, from website/site.mjs, which states them once.
   languages:
     name: 🌐 Languages
+    # The website is the official project's; forks skip it (and the jobs that need this one).
+    if: github.repository == 'a11delavar/mitra'
     runs-on: ubuntu-latest
     outputs:
       list: ${{ steps.list.outputs.list }}
