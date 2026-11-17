@@ -81,6 +81,8 @@ jobs:
           flavor: latest=${{ steps.rank.outputs.latest || 'auto' }}
           tags: |
             type=raw,value=dev,enable={{is_default_branch}}
+            # This edition ships from its default branch, so that branch is also `latest`.
+            type=raw,value=latest,enable={{is_default_branch}}
             type=sha,enable={{is_default_branch}}
             type=ref,event=pr
             type=semver,pattern={{version}}
