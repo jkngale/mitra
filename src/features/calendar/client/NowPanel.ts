@@ -23,7 +23,8 @@ export class NowPanel extends Component {
 
 	protected override connected() {
 		super.connected()
-		this.tick = setInterval(() => this.requestUpdate(), 1000)
+		// Hidden (collapsed, or below 1200px) it still ticked, and every render invalidated the page: Safari repainted the day view's grid blank each second.
+		this.tick = setInterval(() => this.checkVisibility() && this.requestUpdate(), 1000)
 	}
 
 	protected override disconnected() {
