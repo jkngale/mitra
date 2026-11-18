@@ -37,7 +37,21 @@ export class CalDAVSyncEngine implements SourceSyncEngine {
 			return response
 		}
 		try {
-			return await createDAVClient({ ...parameters, fetch: keepingRefusals })
+			const principalUrl = integration.principalUrl
+			if (!principalUrl) {
+				return await createDAVClient({ ...parameters, fetch: keepingRefusals })
+			}
+			// A known principal skips discovery: createDAVClient takes no principal, but createAccount does, given a root.
+			const client = await createDAVClient({ ...parameters, defaultAccountType: undefined, fetch: keepingRefusals })
+			const account = await client.createAccount({
+				account: { accountType: 'caldav', serverUrl: parameters.serverUrl, rootUrl: new URL('/', principalUrl).href, principalUrl },
+				fetch: keepingRefusals,
+			})
+			return {
+				...client,
+				fetchCalendars: ((options: Parameters<typeof client.fetchCalendars>[0] = {}) => client.fetchCalendars({ ...options, account: options.account ?? account })) as typeof client.fetchCalendars,
+				fetchCalendarUserAddresses: ((options: Partial<Parameters<typeof client.fetchCalendarUserAddresses>[0]> = {}) => client.fetchCalendarUserAddresses({ ...options, account: options.account ?? account })) as typeof client.fetchCalendarUserAddresses,
+			}
 		} catch (error) {
 			const error_ = new CalDAVConnectError(parameters.serverUrl, refusals, error)
 			logger.warn(`${error_.message}${refusals.length ? ` (refused: ${refusals.join(', ')})` : ''}`)

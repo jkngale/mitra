@@ -43,3 +43,19 @@ describe('CalDAV source discovery lists the calendars of the address given', () 
 		assert.deepEqual((await discover('https://dav/user2', new Error('403 Forbidden'))).homes, [undefined])
 	})
 })
+
+describe('CalDAV principals', () => {
+	const principalOf = (uri: string) => new CalDAV({ uri, credentials: { username: 'me@example.com', password: 'p' } }).principalUrl
+
+	it('connects a Google account to its address, which Google answers discovery for with 405', () => {
+		assert.equal(principalOf('https://www.google.com/calendar/dav/me%40example.com/user/'), 'https://www.google.com/calendar/dav/me%40example.com/user/')
+		assert.equal(principalOf('https://www.google.com/calendar/dav/me@example.com/user'), 'https://www.google.com/calendar/dav/me@example.com/user')
+	})
+
+	it('discovers every other server, and Google addresses that are not an account', () => {
+		assert.equal(principalOf('https://caldav.icloud.com/'), undefined)
+		assert.equal(principalOf('https://cloud.example.com/remote.php/dav'), undefined)
+		assert.equal(principalOf('https://www.google.com/calendar/dav/me%40example.com/events/'), undefined)
+		assert.equal(principalOf(''), undefined)
+	})
+})

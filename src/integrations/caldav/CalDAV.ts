@@ -88,6 +88,19 @@ export class CalDAV extends Integration<CalDAVCredentials> {
 		return URL.parse(this.uri ?? '')?.pathname.replace(/\/+$/, '') ? this.uri : undefined
 	}
 
+	/**
+	 * A Google account's CalDAV address is its principal already, and Google answers discovery (`/.well-known/caldav`)
+	 * with 405, so such an account connects to it directly. Any other server is discovered.
+	 */
+	get principalUrl(): string | undefined {
+		try {
+			const url = new URL(this.uri ?? '')
+			return url.hostname === 'www.google.com' && /^\/calendar\/dav\/[^/]+\/user\/?$/.test(url.pathname) ? url.href : undefined
+		} catch {
+			return undefined
+		}
+	}
+
 	get clientParameters(): Parameters<typeof createDAVClient>[0] {
 		return {
 			defaultAccountType: 'caldav',
