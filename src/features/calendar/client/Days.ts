@@ -234,7 +234,8 @@ export class Days extends Component {
 				&[data-single-day] {
 					--_visible-days: 1;
 					--_day-width: max(4rem, calc(100cqi - var(--time-axis-width) - 1px));
-					overflow-x: clip;
+					/* Not clip: on a block scroller Safari then dropped the sticky header and the day's layer on repaints, flickering the grid. */
+					overflow-x: hidden;
 					scroll-snap-type: none;
 				}
 
